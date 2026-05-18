@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   useWindowDimensions,
+  Image
 } from "react-native";
 import { colors } from "../../../theme/colors";
 import { API_URL } from "../../../config/api";
@@ -29,6 +30,7 @@ type Overview = {
 
 type AttendanceRecord = {
   id: number;
+  profile_image?: string | null;
   name: string;
   barcode: string;
   attendance_type: "check_in" | "check_out";
@@ -239,12 +241,18 @@ export default function WardenDashboard() {
                 {recentAttendance.map((item) => (
                   <View key={item.id} style={styles.recordRow}>
                     <View style={styles.recordLeft}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>
-                          {item.name?.charAt(0)?.toUpperCase() || "S"}
-                        </Text>
-                      </View>
-
+                      {item.profile_image ? (
+                        <Image
+                          source={{ uri: item.profile_image }}
+                          style={styles.avatarImage}
+                        />
+                      ) : (
+                        <View style={styles.avatar}>
+                          <Text style={styles.avatarText}>
+                            {item.name?.charAt(0)?.toUpperCase() || "S"}
+                          </Text>
+                        </View>
+                      )}
                       <View style={styles.recordInfo}>
                         <Text style={styles.recordName}>{item.name}</Text>
                         <Text style={styles.recordMeta}>ID: {item.barcode}</Text>
@@ -465,6 +473,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background,
   },
   avatarText: {
     color: colors.white,

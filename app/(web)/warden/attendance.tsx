@@ -8,11 +8,17 @@ import {
   ScrollView,
   useWindowDimensions,
   ActivityIndicator,
+  Image
 } from "react-native";
 
 import { colors } from "../../../theme/colors";
 import { API_URL } from "../../../config/api";
 import { useAuth } from "../../../context/AuthContext";
+import { 
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET,
+  CLOUDINARY_UPLOAD_URL 
+} from "@/config/cloudinary";
 
 /* =========================================================
    TYPES
@@ -22,6 +28,7 @@ type AttendanceType = "check_in" | "check_out";
 
 type AttendanceRecord = {
   id: number;
+  profile_image?: string | null;
   name: string;
   barcode?: string;
   student_code?: string;
@@ -389,11 +396,18 @@ export default function AttendancePage() {
             {records.map((item) => (
               <View key={item.id} style={styles.recordRow}>
                 <View style={styles.recordLeft}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {item.name?.charAt(0)?.toUpperCase() || "S"}
-                    </Text>
-                  </View>
+                  {item.profile_image ? (
+                    <Image
+                      source={{ uri: item.profile_image }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {item.name?.charAt(0)?.toUpperCase() || "S"}
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={styles.recordInfo}>
                     <Text style={styles.recordName}>{item.name}</Text>
@@ -757,7 +771,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background,
+  },
   avatarText: {
     color: colors.white,
     fontWeight: "800",

@@ -24,6 +24,7 @@ import {
   CLOUDINARY_UPLOAD_PRESET,
 } from "../../../config/cloudinary";
 import { useAuth } from "../../../context/AuthContext";
+import { validateDobParts } from "@/context/validateDob";
 
 /* =========================================================
    TYPES
@@ -112,6 +113,7 @@ export default function StudentsPage() {
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dobError, setDobError] = useState("");
 
   const [form, setForm] = useState<FormState>({
     student_id: "",
@@ -121,7 +123,7 @@ export default function StudentsPage() {
     dob: "",
     dob_day: "",
     dob_month: "",
-    dob_year: "",
+    dob_year: "20",
     gender: "",
     year_level: "",
     phone_number: "",
@@ -156,7 +158,7 @@ export default function StudentsPage() {
       dob: "",
       dob_day: "",
       dob_month: "",
-      dob_year: "",
+      dob_year: "20",
       gender: "",
       year_level: "",
       phone_number: "",
@@ -194,45 +196,6 @@ export default function StudentsPage() {
         },
       ]);
     });
-  };
-
-  const buildDobForSave = () => {
-    if (Platform.OS !== "web") {
-      return form.dob || null;
-    }
-
-    const dayText = form.dob_day.trim();
-    const monthText = form.dob_month.trim();
-    const yearText = form.dob_year.trim();
-
-    const allEmpty = !dayText && !monthText && !yearText;
-    if (allEmpty) return null;
-
-    if (!dayText || !monthText || !yearText) {
-      Alert.alert("Invalid Date", "Please complete day, month, and year.");
-      return null;
-    }
-
-    const day = Number(dayText);
-    const month = Number(monthText);
-    const year = Number(yearText);
-
-    if (day < 1 || day > 31) {
-      Alert.alert("Invalid Date", "Day must be between 1 and 31.");
-      return null;
-    }
-
-    if (month < 1 || month > 12) {
-      Alert.alert("Invalid Date", "Month must be between 1 and 12.");
-      return null;
-    }
-
-    if (year < 1900 || year > new Date().getFullYear()) {
-      Alert.alert("Invalid Date", "Please enter a valid year.");
-      return null;
-    }
-
-    return `${String(year)}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   };
 
   /* =========================================================
@@ -475,7 +438,18 @@ export default function StudentsPage() {
       return;
     }
 
-    const dobValue = buildDobForSave();
+    const dobResult = validateDobParts(
+      form.dob_day,
+      form.dob_month,
+      form.dob_year
+    );
+
+    if (!dobResult.valid) {
+      Alert.alert("Invalid Date", dobResult.error);
+      return;
+    }
+
+    const dobValue = dobResult.value;
 
     if (
       Platform.OS === "web" &&
@@ -819,40 +793,48 @@ return (
                       maxLength={2}
                     />
 
-                    <TextInput
-                      style={styles.webDateInputYear}
-                      placeholder="YYYY"
-                      value={form.dob_year}
-                      onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9]/g, "").slice(0, 4);
-                        const currentYear = new Date().getFullYear();
+                  <TextInput
+                    style={[
+                      styles.webDateInputYear,
+                      dobError && { borderColor: "red" }
+                    ]}
+                    placeholder="YYYY"
+                    value={form.dob_year}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, "");
 
-                        if (cleaned.length === 0) {
-                          handleChange("dob_year", "");
-                          return;
-                        }
+                      // allow clearing
+                      if (cleaned === "") {
+                        handleChange("dob_year", "");
+                        return;
+                      }
 
-                        // Allow typing first 1–2 digits freely
-                        if (cleaned.length <= 2) {
-                          handleChange("dob_year", cleaned);
-                          return;
-                        }
+                      // auto-pre-fill "20"
+                      if (cleaned.length === 2 && !form.dob_year.startsWith("20")) {
+                        const auto = "20" + cleaned;
+                        handleChange("dob_year", auto);
+                        return;
+                      }
 
-                        // Only allow years starting with 19 or 20
-                        if (cleaned.startsWith("19") || cleaned.startsWith("20")) {
-                          // If full 4 digits, check not in the future
-                          if (cleaned.length === 4) {
-                            if (Number(cleaned) <= currentYear) {
-                              handleChange("dob_year", cleaned);
-                            }
-                          } else {
-                            handleChange("dob_year", cleaned);
-                          }
+                      // limit to 4 digits
+                      const yearStr = cleaned.slice(0, 4);
+                      const year = Number(yearStr);
+
+                      const currentYear = new Date().getFullYear();
+
+                      handleChange("dob_year", yearStr);
+
+                      if (yearStr.length === 4) {
+                        if (year < 1900 || year > currentYear) {
+                          setDobError("Invalid year");
+                        } else {
+                          setDobError("");
                         }
-                      }}
-                      keyboardType="numeric"
-                      maxLength={4}
-                    />
+                      }
+                    }}
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
                   </View>
 
                   {(form.dob_day || form.dob_month || form.dob_year) ? (

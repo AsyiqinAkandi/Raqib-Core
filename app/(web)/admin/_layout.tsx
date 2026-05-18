@@ -30,23 +30,20 @@ export default function AdminLayout() {
   const { user, signOut } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isMobile = width < 768;
+
+  const isDesktop = width >= 1100;
+  const isCompact = width < 1100;
 
   const handleNavigate = (path: string) => {
     router.push(path as any);
-
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(false);
   };
 
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user?.id,
           name: user?.name,
@@ -62,86 +59,77 @@ export default function AdminLayout() {
     router.replace("/(auth)/login");
   };
 
-  const renderSidebar = () => (
-    <View style={styles.sidebar}>
-      <TouchableOpacity onPress={() => router.push("/(web)/admin" as any)}>
+  const SidebarContent = () => (
+    <>
+      {/* Logo */}
+      <TouchableOpacity
+        onPress={() => router.push("/(web)/admin" as any)}
+        style={{ marginBottom: 28 }}
+      >
         <Text style={styles.logo}>Raqib Core</Text>
         <Text style={styles.roleText}>Admin Panel</Text>
       </TouchableOpacity>
 
+      {/* Nav */}
       <View style={styles.navList}>
-      {navItems.map((item) => {
-        const cleanPath = item.path.replace("/(web)", "");
+        {navItems.map((item) => {
+          const cleanPath = item.path.replace("/(web)", "");
+          const isDashboard = cleanPath === "/admin";
 
-        const isDashboard = cleanPath === "/admin";
+          const isActive = isDashboard
+            ? pathname === cleanPath || pathname === item.path
+            : pathname === item.path ||
+              pathname.startsWith(`${cleanPath}/`);
 
-        const isActive = isDashboard
-          ? pathname === cleanPath || pathname === item.path
-          : pathname === item.path ||
-            pathname === cleanPath ||
-            pathname.startsWith(`${cleanPath}/`);
+          return (
+            <TouchableOpacity
+              key={item.path}
+              style={[
+                styles.navItem,
+                isActive && styles.activeNavItem,
+              ]}
+              onPress={() => handleNavigate(item.path)}
+            >
+              <Ionicons
+                name={item.icon as any}
+                size={18}
+                color={isActive ? colors.black : colors.secondary}
+              />
 
-        return (
-          <TouchableOpacity
-            key={item.path}
-            style={[styles.navItem, isActive && styles.activeNavItem]}
-            onPress={() => handleNavigate(item.path)}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={item.icon as any}
-              size={18}
-              color={isActive ? colors.black : colors.secondary}
-            />
-
-            <Text style={[styles.navText, isActive && styles.activeNavText]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <Text
+                style={[
+                  styles.navText,
+                  isActive && styles.activeNavText,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      {/* Logout */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
           <Ionicons name="log-out-outline" size={19} color={colors.white} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </>
   );
 
   return (
     <View style={styles.container}>
-      {isMobile ? (
+      {/* DESKTOP */}
+      {isDesktop ? (
         <>
-          <View style={styles.mobileTopBar}>
-            <TouchableOpacity
-              style={styles.mobileMenuButton}
-              onPress={() => setSidebarOpen(true)}
-            >
-              <Ionicons name="menu-outline" size={26} color={colors.white} />
-            </TouchableOpacity>
-
-            <View>
-              <Text style={styles.mobileTitle}>Raqib Core</Text>
-              <Text style={styles.mobileSubtitle}>Admin Panel</Text>
-            </View>
+          <View style={styles.sidebar}>
+            <SidebarContent />
           </View>
-
-          {sidebarOpen && (
-            <View style={styles.mobileOverlay}>
-              <TouchableOpacity
-                style={styles.backdrop}
-                activeOpacity={1}
-                onPress={() => setSidebarOpen(false)}
-              />
-
-              <View style={styles.mobileSidebar}>
-                {renderSidebar()}
-              </View>
-            </View>
-          )}
 
           <View style={styles.content}>
             <Slot />
@@ -149,7 +137,33 @@ export default function AdminLayout() {
         </>
       ) : (
         <>
-          {renderSidebar()}
+          {/* ONLY MENU BUTTON (floating) */}
+          <TouchableOpacity
+            style={styles.floatingMenuButton}
+            onPress={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <Ionicons
+              name={sidebarOpen ? "close-outline" : "menu-outline"}
+              size={28}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+
+          {/* FULL SCREEN OVERLAY SIDEBAR */}
+          {sidebarOpen && (
+            <View style={styles.fullOverlay}>
+              <TouchableOpacity
+                style={styles.backdrop}
+                onPress={() => setSidebarOpen(false)}
+              />
+
+              <View style={styles.fullSidebar}>
+                <View style={styles.sidebar}>
+                  <SidebarContent />
+                </View>
+              </View>
+            </View>
+          )}
 
           <View style={styles.content}>
             <Slot />
@@ -171,10 +185,6 @@ const styles = StyleSheet.create({
     width: 270,
     backgroundColor: colors.accent,
     padding: 20,
-  },
-
-  logoBlock: {
-    marginBottom: 28,
   },
 
   logo: {
@@ -219,13 +229,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.highlight,
-  },
-
   footer: {
     marginTop: 20,
   },
@@ -258,6 +261,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     gap: 14,
+    marginBottom: 20,
   },
 
   mobileMenuButton: {
@@ -290,10 +294,35 @@ const styles = StyleSheet.create({
 
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
 
   mobileSidebar: {
     width: 280,
+  },
+
+  fullOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+    flexDirection: "row",
+  },
+
+  fullSidebar: {
+    width: "100%",
+    backgroundColor: colors.accent,
+    padding: 20,
+  },
+
+  floatingMenuButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
   },
 });

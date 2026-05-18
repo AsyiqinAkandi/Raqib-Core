@@ -513,6 +513,25 @@ app.get("/reports/warden", async (req, res) => {
       [branch_id]
     );
 
+    const detailedAttendanceResult = await pool.query(
+      `SELECT
+          a.id,
+          a.scanned_at,
+          a.attendance_type,
+          a.category,
+          a.notes,
+          s.student_id,
+          s.name,
+          u.name AS scanned_by_name
+      FROM attendance a
+      JOIN students s ON a.student_id = s.id
+      LEFT JOIN users u ON a.scanned_by = u.id
+      WHERE s.branch_id = $1
+      AND TO_CHAR(a.scanned_at, 'YYYY-MM') = $2
+      ORDER BY a.scanned_at ASC`,
+      [branch_id, month]
+    );
+
     const stats = totalAttendance.rows[0];
     const rooms = roomStatus.rows[0];
 
@@ -533,6 +552,7 @@ app.get("/reports/warden", async (req, res) => {
         studentsWithoutRoom: Number(studentsWithoutRoom.rows[0].count),
         currentlyInStudents: currentlyInStudents.rows,
       },
+      detailedAttendance: detailedAttendanceResult.rows,
     });
   } catch (err) {
     console.error("GET /reports/warden error:", err);
@@ -1488,13 +1508,14 @@ app.get("/dashboard/recent-attendance", async (req, res) => {
           students.name,
           students.student_id AS student_code,
           students.barcode,
+          students.profile_image,
           rooms.room_number
-       FROM attendance
-       JOIN students ON attendance.student_id = students.id
-       LEFT JOIN rooms ON students.room_id = rooms.id
-       ${whereSQL}
-       ORDER BY attendance.scanned_at DESC
-       LIMIT 10`,
+      FROM attendance
+      JOIN students ON attendance.student_id = students.id
+      LEFT JOIN rooms ON students.room_id = rooms.id
+      ${whereSQL}
+      ORDER BY attendance.scanned_at DESC
+      LIMIT 10`,
       values
     );
 

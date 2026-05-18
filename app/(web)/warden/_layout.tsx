@@ -30,7 +30,7 @@ export default function WardenLayout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isMobile = width < 768;
+  const isDesktop = width >= 1100;
 
   const handleNavigate = (path: string) => {
     router.push(path as any);
@@ -46,9 +46,7 @@ export default function WardenLayout() {
     try {
       await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user?.id,
           name: user?.name,
@@ -64,130 +62,89 @@ export default function WardenLayout() {
     router.replace("/(auth)/login");
   };
 
-  const renderSidebar = () => {
+  const SidebarContent = () => {
     return (
-      <View style={styles.sidebar}>
+      <>
+        {/* Header */}
         <View style={styles.logoRow}>
-          <TouchableOpacity onPress={() => router.push("/(web)/warden" as any)}>
+          <TouchableOpacity
+            onPress={() => router.push("/(web)/warden" as any)}
+          >
             <Text style={styles.logo}>Raqib Core</Text>
-            <Text style={styles.branchText}>{user?.branch_name || "Warden"}</Text>
+            <Text style={styles.branchText}>
+              {user?.branch_name || "Warden"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.profileIconButton,
-              pathname === "/(web)/warden/profile" && styles.activeProfileIconButton,
-            ]}
+            style={styles.profileIconButton}
             onPress={goToProfile}
           >
-            <Ionicons
-              name="person-outline"
-              size={18}
-              color={
-                pathname === "/(web)/warden/profile"
-                  ? colors.black
-                  : colors.white
-              }
-            />
+            <Ionicons name="person-outline" size={18} color={colors.white} />
           </TouchableOpacity>
         </View>
 
+        {/* Menu */}
         <View style={styles.menu}>
-        {menuItems.map((item) => {
-          const cleanPath = item.path.replace("/(web)", "");
+          {menuItems.map((item) => {
+            const cleanPath = item.path.replace("/(web)", "");
+            const isDashboard = cleanPath === "/warden";
 
-          const isDashboard = cleanPath === "/warden";
+            const isActive = isDashboard
+              ? pathname === cleanPath || pathname === item.path
+              : pathname === item.path ||
+                pathname.startsWith(`${cleanPath}/`);
 
-          const isActive = isDashboard
-            ? pathname === cleanPath || pathname === item.path
-            : pathname === item.path ||
-              pathname === cleanPath ||
-              pathname.startsWith(`${cleanPath}/`);
+            return (
+              <TouchableOpacity
+                key={item.path}
+                style={[
+                  styles.menuItem,
+                  isActive && styles.activeMenuItem,
+                ]}
+                onPress={() => handleNavigate(item.path)}
+              >
+                <Ionicons
+                  name={item.icon as any}
+                  size={18}
+                  color={isActive ? colors.black : colors.white}
+                />
 
-          return (
-            <TouchableOpacity
-              key={item.path}
-              style={[styles.menuItem, isActive && styles.activeMenuItem]}
-              onPress={() => handleNavigate(item.path)}
-            >
-              <Ionicons
-                name={item.icon as any}
-                size={18}
-                color={isActive ? colors.black : colors.white}
-              />
-
-              <Text style={[styles.menuText, isActive && styles.activeMenuText]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.menuText,
+                    isActive && styles.activeMenuText,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
+        {/* Logout */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
             <Ionicons name="log-out-outline" size={18} color={colors.white} />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </>
     );
   };
 
   return (
     <View style={styles.container}>
-      {isMobile ? (
+      {/* DESKTOP */}
+      {isDesktop ? (
         <>
-          <View style={styles.mobileTopBar}>
-            <TouchableOpacity
-              style={styles.mobileMenuButton}
-              onPress={() => setSidebarOpen(true)}
-            >
-              <Ionicons name="menu-outline" size={26} color={colors.white} />
-            </TouchableOpacity>
-
-            <View style={styles.mobileTitleArea}>
-              <View>
-                <Text style={styles.mobileTitle}>Raqib Core</Text>
-                <Text style={styles.mobileSubtitle}>
-                  {user?.branch_name || "Warden"}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.profileIconButton,
-                  pathname === "/(web)/warden/profile" &&
-                    styles.activeProfileIconButton,
-                ]}
-                onPress={goToProfile}
-              >
-                <Ionicons
-                  name="person-outline"
-                  size={18}
-                  color={
-                    pathname === "/(web)/warden/profile"
-                      ? colors.black
-                      : colors.white
-                  }
-                />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.sidebar}>
+            <SidebarContent />
           </View>
-
-          {sidebarOpen && (
-            <View style={styles.mobileOverlay}>
-              <TouchableOpacity
-                style={styles.backdrop}
-                activeOpacity={1}
-                onPress={() => setSidebarOpen(false)}
-              />
-
-              <View style={styles.mobileSidebar}>
-                {renderSidebar()}
-              </View>
-            </View>
-          )}
 
           <View style={styles.content}>
             <Slot />
@@ -195,7 +152,33 @@ export default function WardenLayout() {
         </>
       ) : (
         <>
-          {renderSidebar()}
+          {/* Floating menu button */}
+          <TouchableOpacity
+            style={styles.floatingMenuButton}
+            onPress={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <Ionicons
+              name={sidebarOpen ? "close-outline" : "menu-outline"}
+              size={28}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+
+          {/* FULL SCREEN SIDEBAR */}
+          {sidebarOpen && (
+            <View style={styles.overlay}>
+              <TouchableOpacity
+                style={styles.backdrop}
+                onPress={() => setSidebarOpen(false)}
+              />
+
+              <View style={styles.fullSidebar}>
+                <View style={styles.sidebar}>
+                  <SidebarContent />
+                </View>
+              </View>
+            </View>
+          )}
 
           <View style={styles.content}>
             <Slot />
@@ -221,7 +204,6 @@ const styles = StyleSheet.create({
 
   logoRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 24,
   },
@@ -233,9 +215,9 @@ const styles = StyleSheet.create({
   },
 
   branchText: {
-    marginTop: 4,
     fontSize: 13,
     color: "rgba(255,255,255,0.75)",
+    marginTop: 4,
   },
 
   profileIconButton: {
@@ -245,13 +227,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-  },
-
-  activeProfileIconButton: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
   },
 
   menu: {
@@ -299,7 +274,6 @@ const styles = StyleSheet.create({
   logoutText: {
     color: colors.white,
     fontWeight: "700",
-    fontSize: 15,
   },
 
   content: {
@@ -307,55 +281,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  mobileTopBar: {
-    height: 72,
-    backgroundColor: colors.primary,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    gap: 14,
-  },
-
-  mobileMenuButton: {
-    width: 42,
-    height: 42,
+  floatingMenuButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    width: 48,
+    height: 48,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1000,
   },
 
-  mobileTitleArea: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  mobileTitle: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: colors.white,
-  },
-
-  mobileSubtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 2,
-  },
-
-  mobileOverlay: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 999,
     flexDirection: "row",
   },
 
-  mobileSidebar: {
-    width: 270,
-  },
-
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+
+  fullSidebar: {
+    width: "100%",
+    backgroundColor: colors.primary,
+    padding: 20,
   },
 });

@@ -5,55 +5,53 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  Platform,
-  useWindowDimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 
 import { colors } from "../../../theme/colors";
 import { API_URL } from "../../../config/api";
 import { useAuth } from "../../../context/AuthContext";
+import { DEMO_REPORT_MONTHS, demoReports } from "../../../context/demoReportData";
 
-type MonthOption = {
-  label: string;
-  value: string;
-};
-
-type SummaryStats = {
-  totalAttendance: number;
-  totalCheckIns: number;
-  totalCheckOuts: number;
-  currentlyInHostel: number;
-};
-
-type DailyAttendancePoint = {
+type DailyAttendance = {
   label: string;
   value: number;
 };
 
-type RoomStatusData = {
-  available: number;
-  full: number;
-  unavailable: number;
-};
-
-type CurrentlyInStudent = {
-  id: number;
-  student_id: string;
-  name: string;
-  scanned_at: string;
-};
-
 type ReportData = {
-  summary: SummaryStats;
-  dailyAttendance: DailyAttendancePoint[];
-  roomStatus: RoomStatusData;
+  summary: {
+    totalAttendance: number;
+    totalCheckIns: number;
+    totalCheckOuts: number;
+    currentlyInHostel: number;
+  };
+  dailyAttendance: DailyAttendance[];
+  roomStatus: {
+    available: number;
+    full: number;
+    unavailable: number;
+  };
   needsAttention: {
     studentsWithoutRoom: number;
-    currentlyInStudents: CurrentlyInStudent[];
+    currentlyInStudents: {
+      id?: number;
+      student_id: string;
+      name: string;
+      scanned_at: string;
+    }[];
   };
+  detailedAttendanceRecords: {
+    date: string;
+    student_id: string;
+    name: string;
+    type: string;
+    category: string;
+    notes: string;
+    scanned_by: string;
+    attendance_type: string;
+  }[];
 };
 
 const EMPTY_REPORT: ReportData = {
@@ -73,239 +71,197 @@ const EMPTY_REPORT: ReportData = {
     studentsWithoutRoom: 0,
     currentlyInStudents: [],
   },
+  detailedAttendanceRecords: [],
 };
 
-const MONTH_OPTIONS: MonthOption[] = [
-  { label: "January 2026", value: "2026-01" },
-  { label: "February 2026", value: "2026-02" },
-  { label: "March 2026", value: "2026-03" },
-  { label: "April 2026", value: "2026-04" },
-  { label: "May 2026", value: "2026-05" },
-  { label: "June 2026", value: "2026-06" },
+const MONTH_OPTIONS = [
+  { label: "January", value: 1 },
+  { label: "February", value: 2 },
+  { label: "March", value: 3 },
+  { label: "April", value: 4 },
+  { label: "May", value: 5 },
+  { label: "June", value: 6 },
+  { label: "July", value: 7 },
+  { label: "August", value: 8 },
+  { label: "September", value: 9 },
+  { label: "October", value: 10 },
+  { label: "November", value: 11 },
+  { label: "December", value: 12 },
 ];
-
-const DUMMY_REPORTS: Record<string, ReportData> = {
-  "2026-01": {
-    summary: {
-      totalAttendance: 182,
-      totalCheckIns: 93,
-      totalCheckOuts: 89,
-      currentlyInHostel: 21,
-    },
-    dailyAttendance: Array.from({ length: 31 }, (_, i) => ({
-      label: String(i + 1),
-      value: [5, 0, 6, 3, 8, 2, 0, 4, 5, 6, 1, 0, 4, 7, 10, 3, 2, 0, 5, 7, 4, 6, 2, 1, 9, 5, 0, 4, 7, 11, 6][i],
-    })),
-    roomStatus: {
-      available: 14,
-      full: 6,
-      unavailable: 2,
-    },
-    needsAttention: {
-      studentsWithoutRoom: 3,
-      currentlyInStudents: [
-        {
-          id: 1,
-          student_id: "23-000101",
-          name: "Sample Student A",
-          scanned_at: "2026-01-15T19:30:00",
-        },
-      ],
-    },
-  },
-  "2026-02": {
-    summary: {
-      totalAttendance: 201,
-      totalCheckIns: 104,
-      totalCheckOuts: 97,
-      currentlyInHostel: 26,
-    },
-    dailyAttendance: Array.from({ length: 28 }, (_, i) => ({
-      label: String(i + 1),
-      value: [6, 0, 4, 5, 9, 2, 0, 5, 3, 7, 1, 4, 6, 0, 12, 3, 5, 6, 2, 8, 4, 0, 7, 3, 10, 5, 9, 13][i],
-    })),
-    roomStatus: {
-      available: 13,
-      full: 7,
-      unavailable: 2,
-    },
-    needsAttention: {
-      studentsWithoutRoom: 2,
-      currentlyInStudents: [
-        {
-          id: 3,
-          student_id: "23-000201",
-          name: "Sample Student C",
-          scanned_at: "2026-02-20T18:45:00",
-        },
-      ],
-    },
-  },
-  "2026-03": {
-    summary: {
-      totalAttendance: 224,
-      totalCheckIns: 116,
-      totalCheckOuts: 108,
-      currentlyInHostel: 28,
-    },
-    dailyAttendance: Array.from({ length: 31 }, (_, i) => ({
-      label: String(i + 1),
-      value: [7, 1, 0, 5, 11, 4, 3, 2, 0, 8, 6, 5, 1, 3, 14, 4, 2, 7, 5, 10, 3, 6, 2, 0, 13, 8, 5, 4, 7, 9, 15][i],
-    })),
-    roomStatus: {
-      available: 12,
-      full: 8,
-      unavailable: 2,
-    },
-    needsAttention: {
-      studentsWithoutRoom: 1,
-      currentlyInStudents: [
-        {
-          id: 4,
-          student_id: "23-000301",
-          name: "Sample Student D",
-          scanned_at: "2026-03-21T19:00:00",
-        },
-      ],
-    },
-  },
-  "2026-05": EMPTY_REPORT,
-  "2026-06": EMPTY_REPORT,
-};
-
-const getTodayInfo = () => {
-  const today = new Date();
-
-  return {
-    currentMonthKey: `${today.getFullYear()}-${String(
-      today.getMonth() + 1
-    ).padStart(2, "0")}`,
-    currentDay: today.getDate(),
-  };
-};
 
 export default function WardenReportsPage() {
   const { user } = useAuth();
-  const { width } = useWindowDimensions();
+  const today = new Date();
 
-  const isWide = width >= 1100;
-  const selectedCardDirection = isWide ? "row" : "column";
+  const [selectedMonthNumber, setSelectedMonthNumber] = useState(
+    today.getMonth() + 1
+  );
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
 
-  const branchId = user?.branch_id;
-  const branchName = user?.branch_name || "your branch";
-
-  const [selectedMonth, setSelectedMonth] = useState("2026-04");
   const [loading, setLoading] = useState(false);
-  const [realAprilReport, setRealAprilReport] =
-    useState<ReportData>(EMPTY_REPORT);
+  const [reportData, setReportData] = useState<ReportData>(EMPTY_REPORT);
 
-  const isAprilRealData = selectedMonth === "2026-04";
+  const YEAR_OPTIONS = useMemo(() => {
+    return Array.from({ length: 5 }, (_, index) => today.getFullYear() - 1 + index);
+  }, []);
 
-  const fetchAprilReport = async () => {
-    if (!user?.branch_id) return;
+  const selectedMonth = useMemo(() => {
+    return `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
+  }, [selectedMonthNumber, selectedYear]);
+
+  const selectedMonthLabel = useMemo(() => {
+    const monthLabel =
+      MONTH_OPTIONS.find((item) => item.value === selectedMonthNumber)?.label ||
+      selectedMonth;
+
+    return `${monthLabel} ${selectedYear}`;
+  }, [selectedMonthNumber, selectedYear, selectedMonth]);
+
+  const todayLabel = useMemo(() => {
+    return today.toLocaleDateString("en-BN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  }, []);
+
+  const isDemoDataMonth = useMemo(() => {
+    return DEMO_REPORT_MONTHS.includes(selectedMonth);
+  }, [selectedMonth]);
+
+  const maxDailyValue = Math.max(
+    ...reportData.dailyAttendance.map((item) => item.value),
+    1
+  );
+
+  const totalRooms =
+    reportData.roomStatus.available +
+    reportData.roomStatus.full +
+    reportData.roomStatus.unavailable;
+
+  const getRoomPercent = (value: number) => {
+    if (totalRooms === 0) return 0;
+    return (value / totalRooms) * 100;
+  };
+
+  const fetchReport = async () => {
+    if (!user?.branch_id) {
+      setReportData(EMPTY_REPORT);
+      return;
+    }
 
     try {
       setLoading(true);
 
-      const res = await fetch(
-        `${API_URL}/reports/warden?branch_id=${user.branch_id}&month=2026-04`
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        Alert.alert("Error", data.error || "Failed to fetch report");
+      if (DEMO_REPORT_MONTHS.includes(selectedMonth)) {
+        setReportData(demoReports[selectedMonth] || EMPTY_REPORT);
         return;
       }
 
-      setRealAprilReport(data);
-    } catch (error) {
-      console.error("Failed to fetch April report:", error);
-      Alert.alert("Error", "Failed to fetch April report data.");
+      const res = await fetch(
+        `${API_URL}/reports/warden?branch_id=${user.branch_id}&month=${selectedMonth}`
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch report");
+      }
+
+      setReportData({
+        ...EMPTY_REPORT,
+        ...(data || {}),
+        detailedAttendanceRecords:
+          data?.detailedAttendanceRecords || data?.detailedAttendance || [],
+      });
+    } catch (error: any) {
+      console.error("fetchReport error:", error);
+      Alert.alert("Error", error?.message || "Failed to fetch report data.");
+      setReportData(EMPTY_REPORT);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (selectedMonth === "2026-04") {
-      fetchAprilReport();
-    }
+    fetchReport();
   }, [selectedMonth, user?.branch_id]);
 
-  const reportData = useMemo(() => {
-    if (selectedMonth === "2026-04") {
-      return realAprilReport;
-    }
-
-    return DUMMY_REPORTS[selectedMonth] || EMPTY_REPORT;
-  }, [selectedMonth, realAprilReport]);
-
-  const summary = reportData.summary;
-
-  const dailyAttendance =
-    reportData.dailyAttendance.length > 0
-      ? reportData.dailyAttendance
-      : [{ label: "1", value: 0 }];
-
-  const roomStatus = reportData.roomStatus;
-
-  const maxAttendanceValue = Math.max(
-    ...dailyAttendance.map((item) => item.value),
-    1
-  );
-
-  const roomStatusTotal =
-    roomStatus.available + roomStatus.full + roomStatus.unavailable || 1;
-
-  const { currentMonthKey, currentDay } = getTodayInfo();
-
-  const handleExport = (type: "attendance" | "students" | "rooms") => {
-    if (type !== "attendance") {
-      Alert.alert("Export", "This export will be connected next.");
-      return;
-    }
-
+  const exportCSV = () => {
     const rows = [
-      ["Report Type", "Monthly Attendance"],
-      ["Month", selectedMonth],
-      ["Branch", user?.branch_name || "Warden Branch"],
-      ["Data Source", isAprilRealData ? "Live Database" : "Demo Data"],
+      ["Raqib Core Warden Report"],
+      ["Branch", user?.branch_name || "-"],
+      ["Report Month", selectedMonthLabel],
+      ["Data Source", isDemoDataMonth ? "Dummy Demo Data" : "Live Database"],
       [],
+      ["Summary"],
+      ["Total Attendance", reportData.summary.totalAttendance],
+      ["Total Check-ins", reportData.summary.totalCheckIns],
+      ["Total Check-outs", reportData.summary.totalCheckOuts],
+      ["Currently In Hostel", reportData.summary.currentlyInHostel],
+      [],
+      ["Room Availability"],
+      ["Available Rooms", reportData.roomStatus.available],
+      ["Full Rooms", reportData.roomStatus.full],
+      ["Unavailable Rooms", reportData.roomStatus.unavailable],
+      [],
+      ["Needs Attention"],
+      ["Students Without Room", reportData.needsAttention.studentsWithoutRoom],
+      [],
+      ["Attendance by Day"],
       ["Day", "Attendance Count"],
-      ...reportData.dailyAttendance.map((item) => [
-        item.label,
-        String(item.value),
+      ...reportData.dailyAttendance.map((day) => [day.label, day.value]),
+      [],
+      ["Detailed Attendance Records"],
+      [
+        "Date",
+        "Student ID",
+        "Name",
+        "Type",
+        "Category",
+        "Notes",
+        "Scanned By",
+        "attendance_type",
+      ],
+      ...reportData.detailedAttendanceRecords.map((record) => [
+        record.date,
+        record.student_id,
+        record.name,
+        record.type,
+        record.category,
+        record.notes,
+        record.scanned_by,
+        record.attendance_type,
       ]),
       [],
-      ["Total Attendance", String(summary.totalAttendance)],
-      ["Total Check-Ins", String(summary.totalCheckIns)],
-      ["Total Check-Outs", String(summary.totalCheckOuts)],
-      ["Currently In Hostel", String(summary.currentlyInHostel)],
+      ["Currently In Hostel Students"],
+      ["Student ID", "Name", "Last Check-in"],
+      ...reportData.needsAttention.currentlyInStudents.map((student) => [
+        student.student_id,
+        student.name,
+        student.scanned_at
+          ? new Date(student.scanned_at).toLocaleString("en-BN")
+          : "-",
+      ]),
     ];
 
-    const csv = rows
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
+    const csvContent = rows.map((row) => row.join(",")).join("\n");
 
-    if (Platform.OS === "web") {
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    if (typeof window !== "undefined") {
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
+
       link.href = url;
-      link.download = `attendance-report-${selectedMonth}.csv`;
-      document.body.appendChild(link);
+      link.download = `warden-report-${user?.branch_name || "branch"}-${selectedMonth}.csv`;
       link.click();
-      document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
     } else {
-      Alert.alert("Export", "CSV export is currently supported on web.");
+      Alert.alert("Export unavailable", "CSV export is only available on web.");
     }
   };
 
@@ -316,155 +272,137 @@ export default function WardenReportsPage() {
       showsVerticalScrollIndicator
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Reports</Text>
-        <Text style={styles.subtitle}>
-          Review monthly attendance and export branch-based reports for{" "}
-          {user?.branch_name || "your assigned branch"}.
-        </Text>
+        <View>
+          <Text style={styles.title}>Reports</Text>
+          <Text style={styles.subtitle}>
+            Generate branch-specific attendance and room reports for{" "}
+            {user?.branch_name || "your branch"}.
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.exportButton} onPress={exportCSV}>
+          <Text style={styles.exportButtonText}>Export CSV</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.filterCard}>
-        <Text style={styles.filterLabel}>Report Month</Text>
-        <View style={styles.selectWrapper}>
-          <Picker
-            selectedValue={selectedMonth}
-            onValueChange={(value) => setSelectedMonth(String(value))}
-            style={styles.picker}
-          >
-            {MONTH_OPTIONS.map((month) => (
-              <Picker.Item
-                key={month.value}
-                label={month.label}
-                value={month.value}
-              />
-            ))}
-          </Picker>
-        </View>
-
-        <Text style={styles.branchLabel}>
-          Branch: {user?.branch_name || "Warden Branch"}
-        </Text>
-
-        <View
-          style={[
-            styles.dataBadge,
-            isAprilRealData ? styles.realDataBadge : styles.demoDataBadge,
-          ]}
-        >
-          <Text
-            style={[
-              styles.dataBadgeText,
-              isAprilRealData ? styles.realDataText : styles.demoDataText,
-            ]}
-          >
-            {isAprilRealData
-              ? "April uses live database data"
-              : "This month uses demo report data"}
+        <View style={styles.filterTextGroup}>
+          <Text style={styles.filterTitle}>Report Period</Text>
+          <Text style={styles.filterSubtitle}>
+            Select a month and year to generate live branch data.
           </Text>
         </View>
+
+        <View style={styles.filterRow}>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedMonthNumber}
+              onValueChange={(value) => setSelectedMonthNumber(Number(value))}
+            >
+              {MONTH_OPTIONS.map((month) => (
+                <Picker.Item
+                  key={month.value}
+                  label={month.label}
+                  value={month.value}
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.yearPickerWrapper}>
+            <Picker
+              selectedValue={selectedYear}
+              onValueChange={(value) => setSelectedYear(Number(value))}
+            >
+              {YEAR_OPTIONS.map((year) => (
+                <Picker.Item key={year} label={String(year)} value={year} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.dataBadge}>
+        <Text style={styles.dataBadgeText}>
+          {isDemoDataMonth
+            ? `${selectedMonthLabel} uses dummy demo data for testing and presentation purposes.`
+            : `This report uses live database data for ${selectedMonthLabel}.`}
+        </Text>
+        <Text style={styles.dataBadgeSubText}>Today’s date: {todayLabel}</Text>
       </View>
 
       {loading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading April report...</Text>
+          <Text style={styles.loadingText}>Loading report data...</Text>
         </View>
       ) : (
         <>
-          <View
-            style={[
-              styles.summaryRow,
-              { flexDirection: selectedCardDirection as "row" | "column" },
-            ]}
-          >
-            <View style={[styles.summaryCard, styles.primaryAccent]}>
-              <Text style={styles.summaryLabel}>Total Attendance</Text>
-              <Text style={styles.summaryValue}>{summary.totalAttendance}</Text>
-            </View>
-
-            <View style={[styles.summaryCard, styles.successAccent]}>
-              <Text style={styles.summaryLabel}>Check-Ins</Text>
-              <Text style={styles.summaryValue}>{summary.totalCheckIns}</Text>
-            </View>
-
-            <View style={[styles.summaryCard, styles.accentAccent]}>
-              <Text style={styles.summaryLabel}>Check-Outs</Text>
-              <Text style={styles.summaryValue}>{summary.totalCheckOuts}</Text>
-            </View>
-
-            <View style={[styles.summaryCard, styles.secondaryAccent]}>
-              <Text style={styles.summaryLabel}>Currently In Hostel</Text>
-              <Text style={styles.summaryValue}>
-                {summary.currentlyInHostel}
-              </Text>
-            </View>
+          <View style={styles.summaryGrid}>
+            <SummaryCard
+              label="Total Attendance"
+              value={reportData.summary.totalAttendance}
+            />
+            <SummaryCard
+              label="Check-ins"
+              value={reportData.summary.totalCheckIns}
+            />
+            <SummaryCard
+              label="Check-outs"
+              value={reportData.summary.totalCheckOuts}
+            />
+            <SummaryCard
+              label="Currently In Hostel"
+              value={reportData.summary.currentlyInHostel}
+            />
           </View>
 
-          <View
-            style={[
-              styles.chartSection,
-              { flexDirection: selectedCardDirection as "row" | "column" },
-            ]}
-          >
-            <View style={[styles.chartCard, styles.lineChartCard]}>
-              <Text style={styles.cardTitle}>Attendance by Day</Text>
-              <Text style={styles.cardSubtitle}>
-                Each day of the selected month is shown. Days without scans are
-                recorded as 0.
-              </Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Attendance by Day</Text>
+            <Text style={styles.cardSubtitle}>
+              Daily attendance count for {selectedMonthLabel}.
+            </Text>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.barChartArea}>
-                  {dailyAttendance.map((item) => {
-                    const dayNumber = Number(item.label);
+            {reportData.dailyAttendance.length === 0 ? (
+              <Text style={styles.emptyText}>No attendance data available.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator>
+                <View style={styles.dailyChartRow}>
+                  {reportData.dailyAttendance.map((item) => {
+                    const heightPercent = Math.max(
+                      (item.value / maxDailyValue) * 100,
+                      item.value > 0 ? 8 : 0
+                    );
 
                     const isToday =
-                      selectedMonth === currentMonthKey &&
-                      dayNumber === currentDay;
-
-                    const isFuture =
-                      selectedMonth === currentMonthKey &&
-                      dayNumber > currentDay;
-
-                    const barHeight =
-                      item.value > 0
-                        ? Math.max((item.value / maxAttendanceValue) * 150, 4)
-                        : 0;
+                      selectedYear === today.getFullYear() &&
+                      selectedMonthNumber === today.getMonth() + 1 &&
+                      Number(item.label) === today.getDate();
 
                     return (
-                      <View key={item.label} style={styles.barColumn}>
-                        <Text
-                          style={[
-                            styles.barValue,
-                            isToday && styles.todayText,
-                            isFuture && styles.futureText,
-                          ]}
-                        >
-                          {item.value}
-                        </Text>
+                      <View
+                        key={item.label}
+                        style={[
+                          styles.dailyBarItem,
+                          isToday && styles.dailyBarItemToday,
+                        ]}
+                      >
+                        <Text style={styles.dailyValue}>{item.value}</Text>
 
-                        <View
-                          style={[
-                            styles.barTrack,
-                            isToday && styles.todayBarTrack,
-                            isFuture && styles.futureBarTrack,
-                          ]}
-                        >
+                        <View style={styles.dailyBarTrack}>
                           <View
                             style={[
-                              styles.barFill,
-                              isToday && styles.todayBarFill,
-                              isFuture && styles.futureBarFill,
-                              { height: barHeight },
+                              styles.dailyBarFill,
+                              isToday && styles.dailyBarFillToday,
+                              { height: `${heightPercent}%` as any },
                             ]}
                           />
                         </View>
 
                         <Text
                           style={[
-                            styles.barLabel,
-                            isToday && styles.todayText,
-                            isFuture && styles.futureText,
+                            styles.dailyLabel,
+                            isToday && styles.dailyLabelToday,
                           ]}
                         >
                           {item.label}
@@ -474,154 +412,134 @@ export default function WardenReportsPage() {
                   })}
                 </View>
               </ScrollView>
-            </View>
+            )}
+          </View>
 
-            <View style={[styles.chartCard, styles.barChartCard]}>
-              <Text style={styles.cardTitle}>Room Availability Summary</Text>
+          <View style={styles.twoColumn}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Room Availability</Text>
               <Text style={styles.cardSubtitle}>
-                Current room status overview for your branch
+                Room availability summary for {user?.branch_name || "this branch"}.
               </Text>
 
-              <View style={styles.statusChartWrap}>
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Available</Text>
-                  <View style={styles.statusBarTrack}>
-                    <View
-                      style={[
-                        styles.statusBarFill,
-                        styles.availableFill,
-                        {
-                          width: `${
-                            (roomStatus.available / roomStatusTotal) * 100
-                          }%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.statusValue}>{roomStatus.available}</Text>
-                </View>
+              <ProgressRow
+                label="Available"
+                value={reportData.roomStatus.available}
+                percent={getRoomPercent(reportData.roomStatus.available)}
+                type="available"
+              />
+              <ProgressRow
+                label="Full"
+                value={reportData.roomStatus.full}
+                percent={getRoomPercent(reportData.roomStatus.full)}
+                type="full"
+              />
+              <ProgressRow
+                label="Unavailable"
+                value={reportData.roomStatus.unavailable}
+                percent={getRoomPercent(reportData.roomStatus.unavailable)}
+                type="unavailable"
+              />
+            </View>
 
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Full</Text>
-                  <View style={styles.statusBarTrack}>
-                    <View
-                      style={[
-                        styles.statusBarFill,
-                        styles.fullFill,
-                        {
-                          width: `${
-                            (roomStatus.full / roomStatusTotal) * 100
-                          }%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.statusValue}>{roomStatus.full}</Text>
-                </View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Needs Attention</Text>
+              <Text style={styles.cardSubtitle}>
+                Operational items that may require follow-up.
+              </Text>
 
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Unavailable</Text>
-                  <View style={styles.statusBarTrack}>
-                    <View
-                      style={[
-                        styles.statusBarFill,
-                        styles.unavailableFill,
-                        {
-                          width: `${
-                            (roomStatus.unavailable / roomStatusTotal) * 100
-                          }%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.statusValue}>
-                    {roomStatus.unavailable}
-                  </Text>
-                </View>
+              <View style={styles.attentionBox}>
+                <Text style={styles.attentionValue}>
+                  {reportData.needsAttention.studentsWithoutRoom}
+                </Text>
+                <Text style={styles.attentionLabel}>Students Without Room</Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.exportCard}>
-            <Text style={styles.cardTitle}>Needs Attention</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Currently In Hostel</Text>
             <Text style={styles.cardSubtitle}>
-              Items wardens may need to review for this branch.
-            </Text>
-
-            <View style={styles.attentionRow}>
-              <Text style={styles.attentionLabel}>Students without room</Text>
-              <Text style={styles.attentionValue}>
-                {reportData.needsAttention.studentsWithoutRoom}
-              </Text>
-            </View>
-
-            <Text style={styles.attentionSectionTitle}>
-              Currently In Hostel
+              Latest students whose most recent attendance status is check-in.
             </Text>
 
             {reportData.needsAttention.currentlyInStudents.length === 0 ? (
               <Text style={styles.emptyText}>
-                No students currently checked in.
+                No currently checked-in students found.
               </Text>
             ) : (
               reportData.needsAttention.currentlyInStudents.map((student) => (
-                <View key={student.id} style={styles.studentMiniRow}>
-                  <Text style={styles.studentMiniName}>{student.name}</Text>
-                  <Text style={styles.studentMiniMeta}>
-                    ID: {student.student_id} • Since{" "}
-                    {new Date(student.scanned_at).toLocaleString()}
+                <View key={student.id} style={styles.studentRow}>
+                  <View>
+                    <Text style={styles.studentName}>{student.name}</Text>
+                    <Text style={styles.studentMeta}>
+                      ID: {student.student_id}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.studentTime}>
+                    {student.scanned_at
+                      ? new Date(student.scanned_at).toLocaleString("en-BN")
+                      : "-"}
                   </Text>
                 </View>
               ))
             )}
           </View>
-
-          <View style={styles.exportCard}>
-            <Text style={styles.cardTitle}>Export Reports</Text>
-            <Text style={styles.cardSubtitle}>
-              Download branch-specific reports in CSV format.
-            </Text>
-
-            <View
-              style={[
-                styles.exportButtonRow,
-                { flexDirection: selectedCardDirection as "row" | "column" },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={() => handleExport("attendance")}
-              >
-                <Text style={styles.exportButtonTitle}>Attendance CSV</Text>
-                <Text style={styles.exportButtonText}>
-                  Monthly attendance records and totals
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={() => handleExport("students")}
-              >
-                <Text style={styles.exportButtonTitle}>Student List CSV</Text>
-                <Text style={styles.exportButtonText}>
-                  Student records for this branch
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={() => handleExport("rooms")}
-              >
-                <Text style={styles.exportButtonTitle}>Room Occupancy CSV</Text>
-                <Text style={styles.exportButtonText}>
-                  Capacity, occupancy, and room status
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </>
       )}
     </ScrollView>
+  );
+}
+
+function SummaryCard({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function ProgressRow({
+  label,
+  value,
+  percent,
+  type,
+}: {
+  label: string;
+  value: number;
+  percent: number;
+  type: "available" | "full" | "unavailable";
+}) {
+  return (
+    <View style={styles.progressRow}>
+      <View style={styles.progressHeader}>
+        <Text style={styles.progressLabel}>{label}</Text>
+        <Text
+          style={[
+            styles.progressValue,
+            type === "available" && styles.availableText,
+            type === "full" && styles.fullText,
+            type === "unavailable" && styles.unavailableText,
+          ]}
+        >
+          {value}
+        </Text>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View
+          style={[
+            styles.progressFill,
+            type === "available" && styles.availableFill,
+            type === "full" && styles.fullFill,
+            type === "unavailable" && styles.unavailableFill,
+            { width: `${percent}%` as any },
+          ]}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -630,344 +548,372 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+
   content: {
     padding: 24,
     paddingBottom: 40,
-    maxWidth: 1400,
+    maxWidth: 1300,
     width: "100%",
     alignSelf: "center",
   },
+
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start",
     marginBottom: 20,
   },
+
   title: {
     fontSize: 30,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.primary,
     marginBottom: 6,
   },
+
   subtitle: {
     fontSize: 15,
-    color: colors.muted,
-    maxWidth: 760,
+    color: colors.secondary,
+    opacity: 0.75,
     lineHeight: 22,
+    maxWidth: 780,
   },
+
+  exportButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+  },
+
+  exportButtonText: {
+    color: colors.white,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
   filterCard: {
     backgroundColor: colors.white,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 20,
+    marginBottom: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "center",
+    flexWrap: "wrap",
   },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+
+  filterTextGroup: {
+    flex: 1,
+    minWidth: 240,
+  },
+
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: "800",
     color: colors.secondary,
-    marginBottom: 8,
   },
-  selectWrapper: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: colors.white,
-    marginBottom: 12,
-  },
-  picker: {
-    width: "100%",
-  },
-  branchLabel: {
+
+  filterSubtitle: {
+    marginTop: 4,
     fontSize: 13,
     color: colors.muted,
-    fontWeight: "600",
   },
-  dataBadge: {
-    marginTop: 12,
-    alignSelf: "flex-start",
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+
+  filterRow: {
+    flexDirection: "row",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  pickerWrapper: {
+    width: 190,
     borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: colors.white,
   },
-  realDataBadge: {
-    backgroundColor: "rgba(40,167,69,0.10)",
-    borderColor: "rgba(40,167,69,0.25)",
+
+  yearPickerWrapper: {
+    width: 130,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: colors.white,
   },
-  demoDataBadge: {
-    backgroundColor: "rgba(197,160,89,0.12)",
-    borderColor: "rgba(197,160,89,0.30)",
+
+  dataBadge: {
+    backgroundColor: "rgba(0,75,35,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,75,35,0.18)",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
   },
+
   dataBadgeText: {
-    fontSize: 12,
+    color: colors.primary,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+
+  dataBadgeSubText: {
+    marginTop: 4,
+    color: colors.secondary,
     fontWeight: "700",
+    fontSize: 12,
+    opacity: 0.75,
   },
-  realDataText: {
-    color: colors.success,
-  },
-  demoDataText: {
-    color: colors.accent,
-  },
+
   loadingBox: {
     backgroundColor: colors.white,
     borderRadius: 18,
     padding: 30,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: "center",
   },
+
   loadingText: {
-    marginTop: 12,
+    marginTop: 10,
     color: colors.muted,
+    fontWeight: "700",
   },
-  summaryRow: {
-    gap: 16,
-    marginBottom: 20,
+
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 14,
+    marginBottom: 18,
   },
+
   summaryCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 220,
     backgroundColor: colors.white,
     borderRadius: 18,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  primaryAccent: {
-    borderLeftWidth: 6,
-    borderLeftColor: colors.primary,
-  },
-  successAccent: {
-    borderLeftWidth: 6,
-    borderLeftColor: colors.success,
-  },
-  accentAccent: {
-    borderLeftWidth: 6,
-    borderLeftColor: colors.accent,
-  },
-  secondaryAccent: {
-    borderLeftWidth: 6,
-    borderLeftColor: colors.secondary,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: colors.muted,
-    marginBottom: 10,
-  },
+
   summaryValue: {
-    fontSize: 32,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "900",
     color: colors.primary,
   },
-  chartSection: {
-    gap: 20,
-    marginBottom: 20,
+
+  summaryLabel: {
+    marginTop: 5,
+    fontSize: 13,
+    color: colors.secondary,
+    fontWeight: "700",
   },
-  chartCard: {
+
+  card: {
     backgroundColor: colors.white,
     borderRadius: 18,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    marginBottom: 18,
   },
-  lineChartCard: {
-    flex: 1.35,
+
+  twoColumn: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 18,
+    marginBottom: 0,
   },
-  barChartCard: {
-    flex: 1,
-  },
+
   cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "800",
     color: colors.secondary,
-    marginBottom: 6,
+    marginBottom: 5,
   },
+
   cardSubtitle: {
     fontSize: 13,
     color: colors.muted,
-    lineHeight: 20,
-    marginBottom: 14,
+    marginBottom: 16,
+    lineHeight: 19,
   },
-  barChartArea: {
+
+  emptyText: {
+    color: colors.muted,
+    fontSize: 14,
+    paddingVertical: 12,
+  },
+
+  dailyChartRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    minHeight: 220,
-    paddingTop: 10,
-    paddingHorizontal: 8,
+    gap: 10,
+    paddingVertical: 10,
+    paddingRight: 12,
   },
-  barColumn: {
+
+  dailyBarItem: {
     width: 34,
     alignItems: "center",
-    marginHorizontal: 3,
   },
-  barValue: {
+
+  dailyBarItemToday: {
+    backgroundColor: "rgba(249,224,118,0.35)",
+    borderRadius: 10,
+    paddingVertical: 6,
+  },
+
+  dailyValue: {
     fontSize: 11,
     color: colors.secondary,
+    fontWeight: "800",
     marginBottom: 6,
-    fontWeight: "600",
   },
-  barTrack: {
-    width: 22,
-    height: 150,
-    backgroundColor: "#edf1f4",
+
+  dailyBarTrack: {
+    height: 120,
+    width: 16,
+    backgroundColor: colors.background,
     borderRadius: 999,
     justifyContent: "flex-end",
     overflow: "hidden",
   },
-  barFill: {
+
+  dailyBarFill: {
     width: "100%",
     backgroundColor: colors.primary,
     borderRadius: 999,
   },
-  todayBarTrack: {
-    borderWidth: 2,
-    borderColor: colors.accent,
-  },
-  todayBarFill: {
+
+  dailyBarFillToday: {
     backgroundColor: colors.accent,
   },
-  futureBarTrack: {
-    backgroundColor: "#f1f3f5",
-  },
-  futureBarFill: {
-    backgroundColor: "#dfe3e6",
-  },
-  todayText: {
-    color: colors.accent,
-    fontWeight: "800",
-  },
-  futureText: {
-    color: "#b6bdc4",
-  },
-  barLabel: {
-    fontSize: 12,
+
+  dailyLabel: {
+    marginTop: 6,
+    fontSize: 11,
     color: colors.muted,
-    marginTop: 8,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-  statusChartWrap: {
-    marginTop: 8,
-    gap: 14,
+
+  dailyLabelToday: {
+    color: colors.primary,
+    fontWeight: "900",
   },
-  statusRow: {
+
+  progressRow: {
+    marginBottom: 16,
+  },
+
+  progressHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 7,
   },
-  statusLabel: {
-    width: 90,
-    fontSize: 13,
+
+  progressLabel: {
     color: colors.secondary,
-    fontWeight: "600",
+    fontWeight: "800",
+    fontSize: 14,
   },
-  statusBarTrack: {
-    flex: 1,
-    height: 14,
-    backgroundColor: "#edf1f4",
+
+  progressValue: {
+    fontWeight: "900",
+    fontSize: 14,
+  },
+
+  progressTrack: {
+    height: 12,
+    backgroundColor: colors.background,
     borderRadius: 999,
     overflow: "hidden",
-    marginHorizontal: 12,
   },
-  statusBarFill: {
+
+  progressFill: {
     height: "100%",
     borderRadius: 999,
   },
+
   availableFill: {
     backgroundColor: colors.success,
   },
+
   fullFill: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
   },
+
   unavailableFill: {
     backgroundColor: colors.error,
   },
-  statusValue: {
-    width: 30,
-    textAlign: "right",
-    fontSize: 13,
-    color: colors.secondary,
-    fontWeight: "700",
+
+  availableText: {
+    color: colors.success,
   },
-  exportCard: {
-    backgroundColor: colors.white,
-    borderRadius: 18,
-    padding: 20,
+
+  fullText: {
+    color: colors.primary,
+  },
+
+  unavailableText: {
+    color: colors.error,
+  },
+
+  attentionBox: {
+    backgroundColor: "rgba(197,160,89,0.14)",
     borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    marginBottom: 20,
+    borderColor: "rgba(197,160,89,0.28)",
+    borderRadius: 16,
+    padding: 18,
   },
-  attentionRow: {
+
+  attentionValue: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: colors.secondary,
+  },
+
+  attentionLabel: {
+    marginTop: 4,
+    color: colors.secondary,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
+  studentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  attentionLabel: {
-    fontSize: 14,
-    color: colors.muted,
-  },
-  attentionValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  attentionSectionTitle: {
-    marginTop: 16,
-    marginBottom: 10,
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.secondary,
-  },
-  studentMiniRow: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  studentMiniName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  studentMiniMeta: {
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 3,
-  },
-  emptyText: {
-    color: colors.muted,
-    fontSize: 13,
-  },
-  exportButtonRow: {
     gap: 14,
-    marginTop: 8,
-  },
-  exportButton: {
-    flex: 1,
-    backgroundColor: "#f7f8fa",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
+    marginBottom: 10,
   },
-  exportButtonTitle: {
+
+  studentName: {
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.primary,
-    marginBottom: 6,
+    fontWeight: "800",
+    color: colors.secondary,
   },
-  exportButtonText: {
-    fontSize: 13,
+
+  studentMeta: {
+    marginTop: 3,
+    fontSize: 12,
     color: colors.muted,
-    lineHeight: 19,
+  },
+
+  studentTime: {
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: "right",
+    maxWidth: 180,
   },
 });

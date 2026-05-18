@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type User = {
   id: number;
+  profile_image?: string | null;
   name: string;
   email: string;
   role: "admin" | "warden";

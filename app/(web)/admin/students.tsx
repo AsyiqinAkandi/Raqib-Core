@@ -23,6 +23,7 @@ import {
   CLOUDINARY_UPLOAD_PRESET,
 } from "../../../config/cloudinary";
 import { useAuth } from "@/context/AuthContext";
+import { validateDobParts } from "@/context/validateDob";
 
 /* =========================================================
    TYPES
@@ -113,6 +114,7 @@ export default function AdminStudentsPage() {
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dobError, setDobError] = useState("");
 
   const [form, setForm] = useState<FormState>({
     student_id: "",
@@ -122,7 +124,7 @@ export default function AdminStudentsPage() {
     dob: "",
     dob_day: "",
     dob_month: "",
-    dob_year: "",
+    dob_year: "20",
     gender: "",
     year_level: "",
     phone_number: "",
@@ -157,7 +159,7 @@ export default function AdminStudentsPage() {
       dob: "",
       dob_day: "",
       dob_month: "",
-      dob_year: "",
+      dob_year: "20",
       gender: "",
       year_level: "",
       phone_number: "",
@@ -195,47 +197,6 @@ export default function AdminStudentsPage() {
         },
       ]);
     });
-  };
-
-  const buildDobForSave = () => {
-    if (Platform.OS !== "web") {
-      return form.dob || null;
-    }
-
-    const dayText = form.dob_day.trim();
-    const monthText = form.dob_month.trim();
-    const yearText = form.dob_year.trim();
-
-    const allEmpty = !dayText && !monthText && !yearText;
-    if (allEmpty) return null;
-
-    if (!dayText || !monthText || !yearText) {
-      Alert.alert("Invalid Date", "Please complete day, month, and year.");
-      return null;
-    }
-
-    const day = Number(dayText);
-    const month = Number(monthText);
-    const year = Number(yearText);
-
-    if (day < 1 || day > 31) {
-      Alert.alert("Invalid Date", "Day must be between 1 and 31.");
-      return null;
-    }
-
-    if (month < 1 || month > 12) {
-      Alert.alert("Invalid Date", "Month must be between 1 and 12.");
-      return null;
-    }
-
-    if (year < 1900 || year > new Date().getFullYear()) {
-      Alert.alert("Invalid Date", "Please enter a valid year.");
-      return null;
-    }
-
-    return `${String(year)}-${String(month).padStart(2, "0")}-${String(
-      day
-    ).padStart(2, "0")}`;
   };
 
   /* =========================================================
@@ -497,7 +458,18 @@ export default function AdminStudentsPage() {
       return;
     }
 
-    const dobValue = buildDobForSave();
+    const dobResult = validateDobParts(
+      form.dob_day,
+      form.dob_month,
+      form.dob_year
+    );
+
+    if (!dobResult.valid) {
+      Alert.alert("Invalid Date", dobResult.error);
+      return;
+    }
+
+    const dobValue = dobResult.value;
 
     if (
       Platform.OS === "web" &&
@@ -881,12 +853,19 @@ return (
                     style={styles.webDateInput}
                     placeholder="DD"
                     value={form.dob_day}
-                    onChangeText={(text) =>
-                      handleChange(
-                        "dob_day",
-                        text.replace(/[^0-9]/g, "").slice(0, 2)
-                      )
-                    }
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, "").slice(0, 2);
+
+                      if (cleaned === "") {
+                        handleChange("dob_day", "");
+                        return;
+                      }
+
+                      const num = Number(cleaned);
+                      if (num >= 1 && num <= 31) {
+                        handleChange("dob_day", cleaned);
+                      }
+                    }}
                     keyboardType="numeric"
                     maxLength={2}
                   />
@@ -895,26 +874,62 @@ return (
                     style={styles.webDateInput}
                     placeholder="MM"
                     value={form.dob_month}
-                    onChangeText={(text) =>
-                      handleChange(
-                        "dob_month",
-                        text.replace(/[^0-9]/g, "").slice(0, 2)
-                      )
-                    }
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, "").slice(0, 2);
+
+                      if (cleaned === "") {
+                        handleChange("dob_month", "");
+                        return;
+                      }
+
+                      const num = Number(cleaned);
+                      if (num >= 1 && num <= 12) {
+                        handleChange("dob_month", cleaned);
+                      }
+                    }}
                     keyboardType="numeric"
                     maxLength={2}
                   />
 
                   <TextInput
-                    style={styles.webDateInputYear}
+                    style={[
+                      styles.webDateInputYear,
+                      dobError && { borderColor: "red" }
+                    ]}
                     placeholder="YYYY"
                     value={form.dob_year}
-                    onChangeText={(text) =>
-                      handleChange(
-                        "dob_year",
-                        text.replace(/[^0-9]/g, "").slice(0, 4)
-                      )
-                    }
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, "");
+
+                      // allow clearing
+                      if (cleaned === "") {
+                        handleChange("dob_year", "");
+                        return;
+                      }
+
+                      // auto-pre-fill "20"
+                      if (cleaned.length === 2 && !form.dob_year.startsWith("20")) {
+                        const auto = "20" + cleaned;
+                        handleChange("dob_year", auto);
+                        return;
+                      }
+
+                      // limit to 4 digits
+                      const yearStr = cleaned.slice(0, 4);
+                      const year = Number(yearStr);
+
+                      const currentYear = new Date().getFullYear();
+
+                      handleChange("dob_year", yearStr);
+
+                      if (yearStr.length === 4) {
+                        if (year < 1900 || year > currentYear) {
+                          setDobError("Invalid year");
+                        } else {
+                          setDobError("");
+                        }
+                      }
+                    }}
                     keyboardType="numeric"
                     maxLength={4}
                   />
