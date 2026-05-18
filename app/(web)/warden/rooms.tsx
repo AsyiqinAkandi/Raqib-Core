@@ -209,7 +209,7 @@ export default function WardenRoomsPage() {
   }, [branchId]);
 
   /* =========================================================
-     FILTERED DATA
+    FILTERED DATA
   ========================================================= */
 
   const filteredRooms = useMemo(() => {
@@ -219,11 +219,27 @@ export default function WardenRoomsPage() {
       const occupantCount = Number(room.occupant_count ?? 0);
       const capacity = Number(room.capacity ?? 0);
 
-      const matchesSearch =
-        room.room_number?.toLowerCase().includes(searchLower) ||
-        room.unit?.toLowerCase().includes(searchLower) ||
-        room.lorong?.toLowerCase().includes(searchLower);
+      // -------------------------
+      // SEARCH (FIXED + SAFE)
+      // -------------------------
+      const fieldsToSearch = [
+        room.room_number,
+        room.unit,
+        room.lorong,
+      ];
 
+      const matchesSearch =
+        searchLower === "" ||
+        fieldsToSearch.some((field) =>
+          (field ?? "")
+            .toString()
+            .toLowerCase()
+            .includes(searchLower)
+        );
+
+      // -------------------------
+      // OCCUPANCY FILTER
+      // -------------------------
       const matchesOccupancy =
         occupancyFilter === "all" ||
         (occupancyFilter === "occupied" && occupantCount > 0) ||

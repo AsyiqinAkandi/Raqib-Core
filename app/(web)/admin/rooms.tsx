@@ -232,35 +232,54 @@ export default function AdminRoomsPage() {
   }, []);
 
   /* =========================================================
-     FILTERED DATA
+    FILTERED DATA
   ========================================================= */
 
-    const filteredRooms = useMemo(() => {
+  const filteredRooms = useMemo(() => {
     const searchLower = search.toLowerCase().trim();
 
     return rooms.filter((room) => {
-        const occupantCount = Number(room.occupant_count ?? 0);
-        const capacity = Number(room.capacity ?? 0);
+      const occupantCount = Number(room.occupant_count ?? 0);
+      const capacity = Number(room.capacity ?? 0);
 
-        const matchesBranch =
+      // -------------------------
+      // Branch filter
+      // -------------------------
+      const matchesBranch =
         branchFilter === "all" ||
         Number(room.branch_id) === Number(branchFilter);
 
-        const matchesSearch =
-        room.room_number?.toLowerCase().includes(searchLower) ||
-        room.unit?.toLowerCase().includes(searchLower) ||
-        room.lorong?.toLowerCase().includes(searchLower) ||
-        room.branch_name?.toLowerCase().includes(searchLower);
+      // -------------------------
+      // Search filter
+      // -------------------------
+      const fieldsToSearch = [
+        room.room_number,
+        room.unit,
+        room.lorong,
+        room.branch_name,
+      ];
 
-        const matchesOccupancy =
+      const matchesSearch =
+        searchLower === "" ||
+        fieldsToSearch.some((field) =>
+          (field ?? "")
+            .toString()
+            .toLowerCase()
+            .includes(searchLower)
+        );
+
+      // -------------------------
+      // Occupancy filter
+      // -------------------------
+      const matchesOccupancy =
         occupancyFilter === "all" ||
         (occupancyFilter === "occupied" && occupantCount > 0) ||
         (occupancyFilter === "unoccupied" && occupantCount === 0) ||
         (occupancyFilter === "full" && occupantCount >= capacity);
 
-        return matchesBranch && matchesSearch && matchesOccupancy;
+      return matchesBranch && matchesSearch && matchesOccupancy;
     });
-    }, [rooms, search, branchFilter, occupancyFilter]);
+  }, [rooms, search, branchFilter, occupancyFilter]);
 
   /* =========================================================
      CRUD ACTIONS
