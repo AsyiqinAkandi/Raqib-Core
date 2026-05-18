@@ -1,8 +1,8 @@
-# 🧠 Raqib Core – Hostel Management System
+# Raqib Core – Hostel Management System
 
-## 📌 Overview
+## Overview
 
-**Raqib Core** is a web and mobile-based Hostel Management System developed using the **PERN stack** (PostgreSQL, Express, React Native with Expo, Node.js).
+Raqib Core is a web and mobile-based Hostel Management System developed using the PERN stack (PostgreSQL, Express, React Native with Expo, Node.js).
 
 The system is designed for hostel administration in an Islamic school environment, supporting:
 
@@ -14,14 +14,14 @@ The system is designed for hostel administration in an Islamic school environmen
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 
 * React Native (Expo)
 * Expo Router
-* Axios (API communication 📡)
-* Zustand (state management 🧠)
+* Axios
+* Zustand
 * React Native Chart Kit
 * React Native SVG
 
@@ -42,7 +42,18 @@ The system is designed for hostel administration in an Islamic school environmen
 
 ---
 
-## 🚀 Installation Guide
+## Database Schema
+
+The full PostgreSQL schema is available in:
+
+/database/schema.sql
+
+To initialize the database:
+
+```bash
+psql -U postgres -d your_database -f database/schema.sql
+
+## Installation Guide
 
 ### 1. Create Project
 
@@ -50,7 +61,7 @@ The system is designed for hostel administration in an Islamic school environmen
 npx create-expo-app@latest raqib-core
 cd raqib-core
 npm install
-```
+````
 
 ---
 
@@ -71,7 +82,6 @@ npx expo install @react-native-picker/picker
 npx expo install expo-image-picker
 npx expo install @react-native-community/datetimepicker
 npm install react-native-chart-kit react-native-svg
-npx expo install react-native-svg
 ```
 
 ---
@@ -91,7 +101,7 @@ Run backend:
 node index.js
 ```
 
-Auto-restart server:
+For development:
 
 ```bash
 npx nodemon index.js
@@ -99,52 +109,33 @@ npx nodemon index.js
 
 ---
 
-## 📡 API Configuration (IMPORTANT)
+## API Configuration
 
-The system uses a **local IP-based connection** instead of hosted backend.
+The system connects to a locally hosted backend server.
 
-### Example:
+Example:
 
 ```ts
 export const API_URL =
   Platform.OS === "web"
     ? "http://localhost:5000"
-    : "http://192.168.X.X:5000";
+    : "http://YOUR_BACKEND_URL:5000";
 ```
 
 ---
 
-## ⚠️ IP Address Handling
-
-Since the backend is hosted locally:
-
-* Your **mobile device must be on the same Wi-Fi network** as your laptop
-* The **IP address must be updated manually** when switching networks
-
-### Common Issue:
-
-> ❌ "Network request failed"
-
-### Fix:
-
-1. Run `ipconfig` (Windows) or `ifconfig` (Mac)
-2. Update your local IP in `API_URL`
-3. Restart Expo
-
----
-
-## 📱 Running the App
+## Running the App
 
 ```bash
 npx expo start
 ```
 
-* Press `w` → run on web
-* Scan QR → run on mobile (Expo Go)
+* Press `w` to run web
+* Scan QR code to run on mobile (Expo Go)
 
 ---
 
-## 👥 User Roles
+## User Roles
 
 ### Admin
 
@@ -156,59 +147,58 @@ npx expo start
 
 * Branch-specific access
 * Manage students and rooms
-* Record attendance (manual + barcode)
+* Record attendance (manual and barcode)
 * Generate reports
 
 ---
 
-## 📊 Reports
+## Reports
 
-* Monthly filtering (Admin & Warden)
-* CSV Export includes:
+* Monthly filtering for Admin and Warden
+* CSV export includes:
 
-  * Monthly Summary
-  * Daily Attendance
-  * Detailed Attendance Records
-
----
-
-## 🎯 Key Features
-
-* 📷 Barcode-based attendance scanning
-* 🏠 Room capacity tracking
-* 📊 Dashboard analytics
-* 📝 Notes & attendance categories
-* 📁 CSV report export
-* 🔐 Role-based access control
+  * Monthly summary
+  * Daily attendance
+  * Detailed attendance records
 
 ---
 
-## 🚧 Known Limitations
+## Key Features
 
-* Backend is not hosted (local only)
-* IP address must be updated manually
-* Mobile performance may vary depending on device
+* Barcode-based attendance scanning
+* Room capacity tracking
+* Dashboard analytics
+* Notes and attendance categories
+* CSV report export
+* Role-based access control
 
 ---
 
-## 🧠 Project Status
+## Known Limitations
 
-```txt
-✔ Core features complete
-✔ Reporting system complete
-✔ Demo-ready
-✔ Stable for presentation
+* Backend is locally hosted
+* Requires network access to backend server
+* Performance may vary depending on device and network conditions
+
+---
+
+## Project Status
+
+```
+Core features complete
+Reporting system complete
+Demo-ready
+Stable for presentation
 ```
 
 ---
 
-## 💬 Notes
+## Notes
 
-> This system prioritizes stability and usability for demonstration purposes.
-> Hosting and advanced deployment are intentionally deferred to reduce risk during final submission.
+This system prioritizes stability and usability for demonstration purposes. Hosting and advanced deployment are intentionally deferred to reduce risk during final submission.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 Developed as part of a Capstone Project (UTB SCI Programme)
