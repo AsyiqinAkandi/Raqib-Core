@@ -88,11 +88,12 @@ export default function WardenLayout() {
         <View style={styles.menu}>
           {menuItems.map((item) => {
             const cleanPath = item.path.replace("/(web)", "");
+
             const isDashboard = cleanPath === "/warden";
 
             const isActive = isDashboard
-              ? pathname === cleanPath || pathname === item.path
-              : pathname === item.path ||
+              ? pathname === "/warden"
+              : pathname === cleanPath ||
                 pathname.startsWith(`${cleanPath}/`);
 
             return (
@@ -139,7 +140,6 @@ export default function WardenLayout() {
 
   return (
     <View style={styles.container}>
-      {/* DESKTOP */}
       {isDesktop ? (
         <>
           <View style={styles.sidebar}>
@@ -152,7 +152,6 @@ export default function WardenLayout() {
         </>
       ) : (
         <>
-          {/* Floating menu button */}
           <TouchableOpacity
             style={styles.floatingMenuButton}
             onPress={() => setSidebarOpen(!sidebarOpen)}
@@ -164,7 +163,6 @@ export default function WardenLayout() {
             />
           </TouchableOpacity>
 
-          {/* FULL SCREEN SIDEBAR */}
           {sidebarOpen && (
             <View style={styles.overlay}>
               <TouchableOpacity

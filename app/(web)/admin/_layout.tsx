@@ -32,7 +32,6 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isDesktop = width >= 1100;
-  const isCompact = width < 1100;
 
   const handleNavigate = (path: string) => {
     router.push(path as any);
@@ -73,13 +72,13 @@ export default function AdminLayout() {
       {/* Nav */}
       <View style={styles.navList}>
         {navItems.map((item) => {
-          const cleanPath = item.path.replace("/(web)", "");
-          const isDashboard = cleanPath === "/admin";
+        const cleanPath = item.path.replace("/(web)", "");
 
-          const isActive = isDashboard
-            ? pathname === cleanPath || pathname === item.path
-            : pathname === item.path ||
-              pathname.startsWith(`${cleanPath}/`);
+        const isDashboard = cleanPath === "/admin";
+
+        const isActive = isDashboard
+          ? pathname === "/admin"
+          : pathname === cleanPath || pathname.startsWith(`${cleanPath}/`);
 
           return (
             <TouchableOpacity
@@ -137,7 +136,7 @@ export default function AdminLayout() {
         </>
       ) : (
         <>
-          {/* ONLY MENU BUTTON (floating) */}
+          {/* MENU BUTTON */}
           <TouchableOpacity
             style={styles.floatingMenuButton}
             onPress={() => setSidebarOpen(!sidebarOpen)}
@@ -149,7 +148,7 @@ export default function AdminLayout() {
             />
           </TouchableOpacity>
 
-          {/* FULL SCREEN OVERLAY SIDEBAR */}
+          {/* OVERLAY SIDEBAR */}
           {sidebarOpen && (
             <View style={styles.fullOverlay}>
               <TouchableOpacity
@@ -254,51 +253,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  mobileTopBar: {
-    height: 72,
-    backgroundColor: colors.accent,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    gap: 14,
-    marginBottom: 20,
-  },
-
-  mobileMenuButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  mobileTitle: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: colors.black,
-  },
-
-  mobileSubtitle: {
-    fontSize: 12,
-    color: colors.secondary,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-
-  mobileOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 999,
-    flexDirection: "row",
-  },
-
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
-  },
-
-  mobileSidebar: {
-    width: 280,
   },
 
   fullOverlay: {
